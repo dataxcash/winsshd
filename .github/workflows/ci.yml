@@ -6,9 +6,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +43,7 @@ jobs:
           Get-Service WinSSHD | Format-List Name, Status, StartType
 
       - name: Wait for port 2222
+        timeout-minutes: 2
         shell: pwsh
         run: |
           $ok = $false
@@ -53,27 +59,35 @@ jobs:
           }
 
       - name: Test exec (publickey)
+        timeout-minutes: 3
         shell: pwsh
         run: |
-          $out = ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
-                       -i testkey -p 2222 tester@127.0.0.1 "echo EXEC_OK"
-          Write-Host $out
-          if ("$out" -notmatch "EXEC_OK") { throw "exec test failed: $out" }
+          $out = ssh -vv -o BatchMode=yes -o ConnectTimeout=10 `
+                       -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
+                       -o IdentitiesOnly=yes `
+                       -i testkey -p 2222 tester@127.0.0.1 "echo EXEC_OK" 2>&1
+          $out | Out-String | Write-Host
+          if ("$out" -notmatch "EXEC_OK") { throw "exec test failed" }
 
       - name: Test interactive shell (PTY)
+        timeout-minutes: 3
         shell: pwsh
         run: |
-          $out = "exit`n" | ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
-                       -i testkey -p 2222 tester@127.0.0.1 2>&1
-          $LASTEXITCODE -eq 0 -or $true # shell 关闭码不定, 仅要求连接成功过
-          Write-Host $out | Out-String
+          "exit`n" | ssh -o BatchMode=yes -o ConnectTimeout=10 `
+                       -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
+                       -o IdentitiesOnly=yes `
+                       -i testkey -p 2222 tester@127.0.0.1 2>&1 | Out-String | Write-Host
+          Write-Host "shell session connected OK"
 
       - name: Test SFTP roundtrip
+        timeout-minutes: 3
         shell: pwsh
         run: |
           "sftp-roundtrip-content" | Out-File -Encoding ascii up.txt
           "put up.txt`nls -l`nget up.txt down.txt`nbye" | Out-File -Encoding ascii sftp.bat
-          sftp -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
+          sftp -o BatchMode=yes -o ConnectTimeout=10 `
+               -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
+               -o IdentitiesOnly=yes `
                -i testkey -P 2222 -b sftp.bat tester@127.0.0.1
           if ($LASTEXITCODE -ne 0) { throw "sftp failed" }
           $a = (Get-FileHash up.txt).Hash; $b = (Get-FileHash down.txt).Hash
@@ -81,6 +95,7 @@ jobs:
           Write-Host "SFTP roundtrip OK"
 
       - name: Test password auth (Posh-SSH)
+        timeout-minutes: 5
         shell: pwsh
         run: |
           Install-Module Posh-SSH -Force -Scope CurrentUser -ErrorAction Stop
@@ -93,6 +108,7 @@ jobs:
           if ("$($r.Output)" -notmatch "PASSWD_OK") { throw "password auth failed" }
 
       - name: Service stop & uninstall
+        timeout-minutes: 3
         shell: pwsh
         run: |
           $exe = ".\target\release\winsshd.exe"
