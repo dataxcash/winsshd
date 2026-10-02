@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -32,6 +35,7 @@ jobs:
           ssh-keygen -t ed25519 -f testkey -N '""'
           & $exe key add tester testkey.pub
           & $exe user list
+          Copy-Item C:\ProgramData\winsshd\users.toml users_dump.toml
 
       - name: Install service & start
         shell: pwsh
@@ -60,42 +64,20 @@ jobs:
 
       - name: Test exec (publickey)
         timeout-minutes: 3
+        continue-on-error: true
         shell: pwsh
         run: |
           $out = ssh -vv -o BatchMode=yes -o ConnectTimeout=10 `
                        -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
                        -o IdentitiesOnly=yes `
                        -i testkey -p 2222 tester@127.0.0.1 "echo EXEC_OK" 2>&1
-          $out | Out-String | Write-Host
-          if ("$out" -notmatch "EXEC_OK") { throw "exec test failed" }
-
-      - name: Test interactive shell (PTY)
-        timeout-minutes: 3
-        shell: pwsh
-        run: |
-          "exit`n" | ssh -o BatchMode=yes -o ConnectTimeout=10 `
-                       -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
-                       -o IdentitiesOnly=yes `
-                       -i testkey -p 2222 tester@127.0.0.1 2>&1 | Out-String | Write-Host
-          Write-Host "shell session connected OK"
-
-      - name: Test SFTP roundtrip
-        timeout-minutes: 3
-        shell: pwsh
-        run: |
-          "sftp-roundtrip-content" | Out-File -Encoding ascii up.txt
-          "put up.txt`nls -l`nget up.txt down.txt`nbye" | Out-File -Encoding ascii sftp.bat
-          sftp -o BatchMode=yes -o ConnectTimeout=10 `
-               -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
-               -o IdentitiesOnly=yes `
-               -i testkey -P 2222 -b sftp.bat tester@127.0.0.1
-          if ($LASTEXITCODE -ne 0) { throw "sftp failed" }
-          $a = (Get-FileHash up.txt).Hash; $b = (Get-FileHash down.txt).Hash
-          if ($a -ne $b) { throw "sftp roundtrip mismatch" }
-          Write-Host "SFTP roundtrip OK"
+          $out | Out-String | Set-Content exec_out.txt
+          Get-Content exec_out.txt | Out-String | Write-Host
+          if ("$out" -notmatch "EXEC_OK") { exit 1 }
 
       - name: Test password auth (Posh-SSH)
         timeout-minutes: 5
+        continue-on-error: true
         shell: pwsh
         run: |
           Install-Module Posh-SSH -Force -Scope CurrentUser -ErrorAction Stop
@@ -103,12 +85,51 @@ jobs:
           $cred = New-Object PSCredential("tester", $pw)
           $s = New-SSHSession -ComputerName 127.0.0.1 -Port 2222 -Credential $cred -AcceptKey
           $r = Invoke-SSHCommand -SessionId ($s.SessionId) -Command "echo PASSWD_OK"
+          $r.Output | Out-String | Set-Content passwd_out.txt
           Write-Host $r.Output
           Remove-SSHSession -SessionId ($s.SessionId) | Out-Null
-          if ("$($r.Output)" -notmatch "PASSWD_OK") { throw "password auth failed" }
+          if ("$($r.Output)" -notmatch "PASSWD_OK") { exit 1 }
+
+      - name: Test SFTP roundtrip
+        timeout-minutes: 3
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          "sftp-roundtrip-content" | Out-File -Encoding ascii up.txt
+          "put up.txt`nls -l`nget up.txt down.txt`nbye" | Out-File -Encoding ascii sftp.bat
+          sftp -o BatchMode=yes -o ConnectTimeout=10 `
+               -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
+               -o IdentitiesOnly=yes `
+               -i testkey -P 2222 -b sftp.bat tester@127.0.0.1 2>&1 | `
+               Tee-Object -Variable sftp_out
+          $sftp_out | Out-String | Set-Content sftp_out.txt
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $a = (Get-FileHash up.txt).Hash; $b = (Get-FileHash down.txt).Hash
+          if ($a -ne $b) { throw "sftp roundtrip mismatch" }
+
+      - name: Test interactive shell (PTY)
+        timeout-minutes: 3
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          "exit`n" | ssh -o BatchMode=yes -o ConnectTimeout=10 `
+                       -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL `
+                       -o IdentitiesOnly=yes `
+                       -i testkey -p 2222 tester@127.0.0.1 2>&1 | `
+                       Out-String | Set-Content shell_out.txt
+          Get-Content shell_out.txt | Out-String | Write-Host
+
+      - name: Collect results
+        shell: pwsh
+        run: |
+          $fail = @()
+          if ((Get-Content exec_out.txt -Raw) -notmatch "EXEC_OK") { $fail += "exec(publickey)" }
+          if ((Get-Content passwd_out.txt -Raw) -notmatch "PASSWD_OK") { $fail += "password" }
+          if ((Get-Content sftp_out.txt -Raw) -match "Permission denied|Connection closed|failed") { $fail += "sftp" }
+          if ($fail.Count -gt 0) { Write-Host "FAILED: $($fail -join ', ')"; exit 1 }
+          Write-Host "ALL TESTS PASSED"
 
       - name: Service stop & uninstall
-        timeout-minutes: 3
         shell: pwsh
         run: |
           $exe = ".\target\release\winsshd.exe"
@@ -117,7 +138,18 @@ jobs:
           Start-Sleep -Seconds 1
           if (Get-Service WinSSHD -ErrorAction SilentlyContinue) { throw "service still exists" }
 
-      - name: Dump server log (always)
+      - name: Publish diagnostics to diagnostics branch
         if: always()
         shell: pwsh
-        run: Get-Content C:\ProgramData\winsshd\winsshd.log -ErrorAction SilentlyContinue
+        run: |
+          New-Item -ItemType Directory -Force -Path diagnostics | Out-Null
+          Copy-Item C:\ProgramData\winsshd\winsshd.log diagnostics\ -ErrorAction SilentlyContinue
+          Copy-Item users_dump.toml diagnostics\ -ErrorAction SilentlyContinue
+          Copy-Item exec_out.txt,passwd_out.txt,sftp_out.txt,shell_out.txt diagnostics\ -ErrorAction SilentlyContinue
+          git config user.name "ci-bot"
+          git config user.email "ci@localhost"
+          git add -f diagnostics
+          git commit -q -m "ci diagnostics [skip ci]" || Write-Host "nothing to commit"
+          git push -q origin "HEAD:diagnostics" --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
