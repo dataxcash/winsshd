@@ -64,7 +64,6 @@ jobs:
 
       - name: Test exec (publickey)
         timeout-minutes: 3
-        continue-on-error: true
         shell: pwsh
         run: |
           $out = ssh -vv -o BatchMode=yes -o ConnectTimeout=10 `
@@ -77,7 +76,6 @@ jobs:
 
       - name: Test password auth (Posh-SSH)
         timeout-minutes: 5
-        continue-on-error: true
         shell: pwsh
         run: |
           Install-Module Posh-SSH -Force -Scope CurrentUser -ErrorAction Stop
@@ -92,7 +90,6 @@ jobs:
 
       - name: Test SFTP roundtrip
         timeout-minutes: 3
-        continue-on-error: true
         shell: pwsh
         run: |
           "sftp-roundtrip-content" | Out-File -Encoding ascii up.txt
@@ -119,17 +116,6 @@ jobs:
                        -i testkey -p 2222 tester@127.0.0.1 2>&1 | `
                        Out-String | Set-Content shell_out.txt
           Get-Content shell_out.txt | Out-String | Write-Host
-
-      - name: Collect results
-        shell: pwsh
-        run: |
-          $fail = @()
-          if ((Get-Content exec_out.txt -Raw) -notmatch "EXEC_OK") { $fail += "exec(publickey)" }
-          if ((Get-Content passwd_out.txt -Raw) -notmatch "PASSWD_OK") { $fail += "password" }
-          if (-not (Test-Path sftp_ok.txt)) { $fail += "sftp" }
-          if (-not (Test-Path shell_ok.txt)) { $fail += "shell(pty)" }
-          if ($fail.Count -gt 0) { Write-Host "FAILED: $($fail -join ', ')"; exit 1 }
-          Write-Host "ALL TESTS PASSED"
 
       - name: Service stop & uninstall
         shell: pwsh
