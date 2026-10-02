@@ -32,8 +32,8 @@ jobs:
           Copy-Item config.example.toml C:\ProgramData\winsshd\config.toml
           $exe = ".\target\release\winsshd.exe"
           & $exe user add tester --password "Test123456"
-          ssh-keygen -t ed25519 -f testkey -N '""'
-          & $exe key add tester testkey.pub
+          ssh-keygen -t ed25519 -f testkey -N ''
+          & $exe key-add tester testkey.pub
           & $exe user list
           Copy-Item C:\ProgramData\winsshd\users.toml users_dump.toml
 
@@ -106,6 +106,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           $a = (Get-FileHash up.txt).Hash; $b = (Get-FileHash down.txt).Hash
           if ($a -ne $b) { throw "sftp roundtrip mismatch" }
+          "SFTP_PASS" | Out-File sftp_ok.txt
 
       - name: Test interactive shell (PTY)
         timeout-minutes: 3
@@ -125,7 +126,8 @@ jobs:
           $fail = @()
           if ((Get-Content exec_out.txt -Raw) -notmatch "EXEC_OK") { $fail += "exec(publickey)" }
           if ((Get-Content passwd_out.txt -Raw) -notmatch "PASSWD_OK") { $fail += "password" }
-          if ((Get-Content sftp_out.txt -Raw) -match "Permission denied|Connection closed|failed") { $fail += "sftp" }
+          if (-not (Test-Path sftp_ok.txt)) { $fail += "sftp" }
+          if (-not (Test-Path shell_ok.txt)) { $fail += "shell(pty)" }
           if ($fail.Count -gt 0) { Write-Host "FAILED: $($fail -join ', ')"; exit 1 }
           Write-Host "ALL TESTS PASSED"
 

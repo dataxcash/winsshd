@@ -43,6 +43,7 @@ enum Cmd {
         cmd: UserCmd,
     },
     /// 为用户添加公钥
+    #[command(name = "key-add", alias = "keyadd")]
     KeyAdd {
         name: String,
         /// 公钥文件 (单行 openssh 公钥)

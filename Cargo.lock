@@ -2544,6 +2544,7 @@ name = "winsshd"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
  "bcrypt",
  "clap",
  "portable-pty",

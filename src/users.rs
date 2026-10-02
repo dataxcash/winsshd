@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -114,13 +115,24 @@ impl Users {
     }
 
     pub fn add_key(&self, name: &str, key_line: &str) -> Result<()> {
+        let line = key_line.trim();
+        let mut parts = line.split_whitespace();
+        let (Some(algo), Some(blob)) = (parts.next(), parts.next()) else {
+            anyhow::bail!("不是有效的 openssh 公钥行 (缺少 算法 base64 两段): {line}");
+        };
+        if !algo.starts_with("ssh-") && !algo.starts_with("ecdsa-") && algo != "sk-ssh-ed25519@openssh.com" {
+            anyhow::bail!("疑似私钥或非公钥行 (algo={algo}) —— 请传入 .pub 公钥文件");
+        }
+        if base64::engine::general_purpose::STANDARD.decode(blob).is_err() {
+            anyhow::bail!("公钥 base64 段解码失败");
+        }
         let mut store = self.load()?;
         let u = store
             .users
             .iter_mut()
             .find(|u| u.name == name)
             .ok_or_else(|| anyhow::anyhow!("用户 {} 不存在", name))?;
-        u.keys.push(key_line.trim().to_string());
+        u.keys.push(line.to_string());
         self.save(&store)
     }
 
