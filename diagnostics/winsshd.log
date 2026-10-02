@@ -1,0 +1,18 @@
+2026-10-02T15:14:22.361673Z  INFO winsshd: winsshd 启动: listen=0.0.0.0:2222 shell=powershell.exe
+2026-10-02T15:14:22.363814Z  INFO winsshd::hostkey: 已生成新主机密钥 C:/ProgramData/winsshd\host_ed25519
+2026-10-02T15:14:25.684414Z  INFO winsshd::server: 新连接: Some(127.0.0.1:61791)
+2026-10-02T15:14:26.159463Z  INFO winsshd::server: 新连接: Some(127.0.0.1:61792)
+2026-10-02T15:14:26.211084Z  INFO winsshd::server: 公钥认证成功: user=tester
+2026-10-02T15:14:26.217945Z  INFO winsshd::shell: exec: echo EXEC_OK
+2026-10-02T15:14:46.784426Z  INFO winsshd::server: 新连接: Some(127.0.0.1:61817)
+2026-10-02T15:14:47.596494Z  INFO winsshd::server: 密码认证成功: user=tester
+2026-10-02T15:14:47.635726Z  INFO winsshd::shell: exec: echo PASSWD_OK
+2026-10-02T15:14:48.579090Z  INFO winsshd::server: 新连接: Some(127.0.0.1:61823)
+2026-10-02T15:14:48.594076Z  INFO winsshd::server: 公钥认证成功: user=tester
+2026-10-02T15:14:48.594835Z  INFO winsshd::server: SFTP 会话结束
+2026-10-02T15:14:48.594910Z  INFO winsshd::sftp: SFTP init
+2026-10-02T15:14:49.229907Z  INFO winsshd::server: 新连接: Some(127.0.0.1:61824)
+2026-10-02T15:14:49.245972Z  INFO winsshd::server: 公钥认证成功: user=tester
+2026-10-02T15:14:49.246656Z  INFO winsshd::shell: 交互 shell 启动: channel=2 shell=powershell.exe
+2026-10-02T15:17:48.825175Z  INFO winsshd::shell: 交互 shell 结束: channel=2 原因=chan-closed
+2026-10-02T15:17:49.555569Z  INFO winsshd::service::imp: 服务收到停止指令
