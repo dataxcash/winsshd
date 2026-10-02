@@ -1,0 +1,10 @@
+/target
+/dist
+Cargo.lock.bak
+*.log
+config.toml
+users.toml
+testkey
+testkey.pub
+*.aria2
+.env

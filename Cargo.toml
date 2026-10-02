@@ -1,0 +1,32 @@
+[package]
+name = "winsshd"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal Rust SSH server for Windows with SFTP, native service support"
+
+[dependencies]
+anyhow = "1.0.104"
+bcrypt = "0.19.3"
+clap = { version = "4.6.7", features = ["derive"] }
+portable-pty = "0.9"
+rand = "0.10.3"
+rpassword = "7.5.4"
+russh = { version = "0.63", default-features = false, features = ["ring", "rsa", "flate2"] }
+russh-sftp = "3"
+serde = { version = "1.0.229", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7.19"
+toml = "1.1.6"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+# 版本号由 ryzenSvr 上的 cargo add 统一注入后回传
+
+[target.'cfg(windows)'.dependencies]
+windows-service = "0.8.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"

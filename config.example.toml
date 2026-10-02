@@ -1,0 +1,23 @@
+# winsshd 配置示例
+# 默认查找顺序: 程序目录/config.toml → C:/ProgramData/winsshd/config.toml
+
+listen = "0.0.0.0:2222"
+
+# 登录后 shell (cmd / powershell 或完整路径)
+shell = "powershell.exe"
+
+# SFTP
+sftp_enabled = true
+sftp_root = "C:/"          # SFTP 会话可见的根目录
+
+# 主机密钥 (首次运行自动生成 ed25519)
+hostkey_path = "host_ed25519"
+
+# 日志文件 (服务模式下必须落到文件)
+log_file = "winsshd.log"
+log_level = "info"
+
+[auth]
+password = true            # USERID+PWD
+publickey = true           # 公钥
+users_file = "users.toml"  # 用户与 bcrypt 口令、公钥存放处
