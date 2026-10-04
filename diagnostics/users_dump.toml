@@ -1,0 +1,4 @@
+[[user]]
+name = "tester"
+password_bcrypt = "$2b$12$.jO4uxGn80I.J5EobhqgleXa/Oal9hKMej2IuWD8E4Ytw1Au.asY6"
+keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA+yyGBekNQMxRpMa3mvuJo9VdCU1w6Rx71RyYwOZaAA runneradmin@runnervmfi6oq"]

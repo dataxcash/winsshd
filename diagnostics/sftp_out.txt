@@ -1,0 +1,54 @@
+Warning: Permanently added '[127.0.0.1]:2222' (ED25519) to the list of known hosts.
+sftp> put up.txt
+sftp> ls -l
+drwxr-xr-x        0 C:/$Recycle.Bin
+drwxr-xr-x        0 C:/Android
+-rw-r--r--        0 C:/Documents and Settings
+-rw-r--r--    12288 C:/DumpStack.log.tmp
+drwxr-xr-x        0 C:/Julia
+drwxr-xr-x        0 C:/Miniconda
+drwxr-xr-x        0 C:/Modules
+drwxr-xr-x        0 C:/PSModuleAnalysisCachePath
+drwxr-xr-x        0 C:/Packages
+drwxr-xr-x        0 C:/PerfLogs
+drwxr-xr-x        0 C:/PostgreSQL
+drwxr-xr-x        0 C:/Program Files
+drwxr-xr-x        0 C:/Program Files (x86)
+drwxr-xr-x        0 C:/ProgramData
+drwxr-xr-x        0 C:/Recovery
+drwxr-xr-x        0 C:/SeleniumWebDrivers
+drwxr-xr-x        0 C:/Strawberry
+drwxr-xr-x        0 C:/System Volume Information
+drwxr-xr-x        0 C:/Temp
+drwxr-xr-x        0 C:/Users
+drwxr-xr-x        0 C:/Windows
+drwxr-xr-x        0 C:/WindowsAzure
+drwxr-xr-x        0 C:/actionarchivecache
+drwxr-xr-x        0 C:/actions-runner
+-rw-r--r--   112552 C:/appverifUI.dll
+drwxr-xr-x        0 C:/azureCli
+drwxr-xr-x        0 C:/azureDevOpsCli
+drwxr-xr-x        0 C:/cobertura-2.1.1
+drwxr-xr-x        0 C:/ghcup
+drwxr-xr-x        0 C:/hostedtoolcache
+drwxr-xr-x        0 C:/image
+-rw-r--r--      454 C:/imagedata.json
+drwxr-xr-x        0 C:/inetpub
+drwxr-xr-x        0 C:/mingw32
+drwxr-xr-x        0 C:/mingw64
+drwxr-xr-x        0 C:/msys64
+drwxr-xr-x        0 C:/npm
+-rw-r--r-- 3087007744 C:/pagefile.sys
+drwxr-xr-x        0 C:/post-generation
+drwxr-xr-x        0 C:/rtools45
+drwxr-xr-x        0 C:/selenium
+drwxr-xr-x        0 C:/shells
+-rw-r--r--    49287 C:/software-report.json
+-rw-r--r--    34925 C:/software-report.md
+drwxr-xr-x        0 C:/tools
+-rw-r--r--       24 C:/up.txt
+drwxr-xr-x        0 C:/vcpkg
+-rw-r--r--    68216 C:/vfcompat.dll
+sftp> get up.txt down.txt
+sftp> bye
+
